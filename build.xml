@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Build file for hive-json-serde
+February 2010
+Peter Sankauskas
+-->
+
+<project name="hive-json-serde" default="usage" basedir=".">
+    <!-- Local system paths -->
+    <property name="dir.src" value="${basedir}/src" />
+    <property name="dir.build" value="${basedir}/build" />
+    <property name="dir.build.classes" value="${dir.build}/classes" />
+	<property name="dir.lib" value="${basedir}/lib" />
+    <property name="dir.test" value="${basedir}/test" />
+    <property name="dir.test.report" value="${basedir}/test-reports" />
+    <property name="dir.javadoc" value="${basedir}/../javadoc" />
+    <property name="jarfile" value="${dir.build}/hive-json-serde.jar" />
+	
+    <!-- Classpath -->
+    <path id="compile.classpath">
+        <fileset dir="${dir.lib}">
+            <include name="**/*.jar" />
+        </fileset>
+        <pathelement path="." />
+        <pathelement path="${dir.build.classes}" />
+    </path>
+	
+
+	<!-- Usage message -->
+    <target name="usage">
+        <echo level="info">Usage:</echo>
+        <echo level="info">  ant build        - Compiles this SerDe into a .jar file in the build</echo>
+        <echo level="info">                     directory</echo>
+        <echo level="info">  ant build.debug  - Compiles a debuggable version of this SerDe into a</echo>
+        <echo level="info">                     .jar file in the build directory</echo>
+        <echo level="info">  ant clean  - Remove unnecessary files, and build artifacts</echo>
+        <echo level="info">  ant javadoc  - Creates the JavaDoc</echo>
+        <echo level="info">  ant runtests  - Run all JUnit tests</echo>
+        <echo level="info"></echo>
+        <echo level="info">Build directory: ${dir.build}</echo>
+        <echo level="info">JavaDoc: ${dir.javadoc}</echo>
+        <echo level="info">JUnit test reports: ${dir.test.report}</echo>
+    </target>
+
+
+    <!-- Building -->
+    <target name="prepare">
+        <tstamp />
+    	<mkdir dir="${dir.build}" />
+        <mkdir dir="${dir.build.classes}" />
+    </target>
+
+    <target name="compile" depends="prepare" description="Compiles the source">
+    	<!-- First to set a property wins, so debug below works -->
+    	<property name="debug" value="no" />
+
+    	<javac srcdir="${dir.src}" destdir="${dir.build.classes}" debug="${debug}">
+            <classpath refid="compile.classpath" />
+        </javac>
+    </target>
+
+    <target name="compile.tests" depends="compile" description="Compiles the source of the tests">
+    	<javac srcdir="${dir.test}" destdir="${dir.build.classes}" debug="true">
+            <classpath refid="compile.classpath" />
+        </javac>
+    </target>
+
+	<target name="build" depends="compile">
+        <jar destfile="${jarfile}">
+            <fileset dir="${dir.build.classes}" excludes="${dir.build.tests}/**" />
+        </jar>
+    </target>
+
+	<target name="build.debug">
+		<!-- First to set a property wins, so here is where we enable debugging -->
+		<property name="debug" value="yes" />
+
+		<antcall target="compile.tests" />
+    	
+    	<copy todir="${dir.build.classes}">
+    	    <fileset dir="${dir.src}"/>
+		</copy>
+
+		<antcall target="build" />
+	</target>
+
+	
+    <!-- Cleaning -->
+    <target name="clean" description="Remove unnecessary files">
+    	<delete dir="${dir.build}" />
+    	<delete dir="${dir.test.report}" />
+    </target>
+
+    
+    <!-- JavaDoc -->
+    <target name="javadoc"
+            depends="javadoc-clean"
+            description="Build JavaDoc in ${dir.javadoc}">
+        <mkdir dir="${dir.javadoc}" />
+        <javadoc packagenames="org.apache.hadoop.hive.contrib.*"
+				sourcepath="${dir.src}"
+                defaultexcludes="yes"
+                destdir="${dir.javadoc}"
+                author="true"
+                version="true"
+                use="true"
+                windowtitle="JSON SerDe for Hive"
+            	classpathref="compile.classpath">
+
+            <tag name="todo" scope="all" description="To do:"/>
+		</javadoc>
+	</target>
+		
+	<target name="javadoc-clean" description="Removes JavaDoc files">
+		<delete dir="${dir.javadoc}" />
+	</target>
+		
+		
+	<!-- JUnit tests -->
+	<target name="runtests" depends="build.debug" description="Run all JUnit tests">
+        <delete dir="${dir.test.report}" />
+        <mkdir dir="${dir.test.report}" />
+        <junit printsummary="withOutAndErr"
+               fork="yes"
+               haltonfailure="off"
+               failureproperty="junit.non.success"
+               errorproperty="junit.non.success"
+               dir="${basedir}"
+               showoutput="yes">
+
+            <classpath>
+            	<pathelement location="${dir.build.inst-classes}" />
+                <pathelement location="${dir.build.classes}" />
+                <path refid="compile.classpath" />
+            </classpath>
+
+            <formatter type="xml" />
+            <test name="org.apache.hadoop.hive.contrib.serde2.AllTests"
+                  todir="${dir.test.report}" />
+        </junit>
+
+        <junitreport todir="${dir.test.report}">
+            <fileset dir="${dir.test.report}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="noframes" styledir="${dir.test}" todir="${dir.test.report}" />
+        </junitreport>
+		
+        <fail if="junit.non.success">JUnit Tests FAILED</fail>
+	</target>
+</project>
