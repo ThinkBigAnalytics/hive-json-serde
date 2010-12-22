@@ -170,7 +170,20 @@ public class JsonSerde implements SerDe {
 	// Try parsing row into JSON object
 	JSONObject jObj;
 	try {
-	    jObj = new JSONObject(rowText.toString());
+	    jObj = new JSONObject(rowText.toString()) {
+		/**
+		 * In Hive column names are case insensitive, so lower-case all
+		 * field names
+		 * 
+		 * @see org.json.JSONObject#put(java.lang.String,
+		 *      java.lang.Object)
+		 */
+		@Override
+		public JSONObject put(String key, Object value)
+			throws JSONException {
+		    return super.put(key.toLowerCase(), value);
+		}
+	    };
 	} catch (JSONException e) {
 	    // If row is not a JSON object, make the whole row NULL
 	    LOG.error("Row is not a valid JSON Object - JSONException: "
