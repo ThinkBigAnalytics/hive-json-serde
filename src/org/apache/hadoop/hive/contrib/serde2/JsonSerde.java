@@ -27,8 +27,8 @@ import org.json.JSONObject;
 /**
  * JSON SerDe for Hive
  * <p>
- * This SerDe can be used to read data in JSON format from HDFS or S3 (if you
- * are using AWS). For example, if your JSON files had the following contents:
+ * This SerDe can be used to read data in JSON format. For example, if your JSON
+ * files had the following contents:
  * 
  * <pre>
  * {"field1":"data1","field2":100,"field3":"more data1"}
@@ -55,11 +55,11 @@ import org.json.JSONObject;
  *    field1 string, field2 int, field3 string
  * )
  * ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.JsonSerde'
- * LOCATION 's3://my_data/my_table/';
+ * LOCATION '/my_data/my_table/';
  * </pre>
  * 
  * </li>
- * <li>Copy your JSON files to <code>s3://my_data/my_table/</code>. You can now
+ * <li>Copy your JSON files to <code>/my_data/my_table/</code>. You can now
  * select data using normal SELECT statements
  * 
  * <pre>
@@ -81,160 +81,188 @@ import org.json.JSONObject;
  * @author Peter Sankauskas
  */
 public class JsonSerde implements SerDe {
-    /**
-     * Apache commons logger
-     */
-    private static final Log LOG = LogFactory.getLog(JsonSerde.class.getName());
+	/**
+	 * Apache commons logger
+	 */
+	private static final Log LOG = LogFactory.getLog(JsonSerde.class.getName());
 
-    /**
-     * The number of columns in the table this SerDe is being used with
-     */
-    private int numColumns;
+	/**
+	 * The number of columns in the table this SerDe is being used with
+	 */
+	private int numColumns;
 
-    /**
-     * List of column names in the table
-     */
-    private List<String> columnNames;
+	/**
+	 * List of column names in the table
+	 */
+	private List<String> columnNames;
 
-    /**
-     * An ObjectInspector to be used as meta-data about a deserialized row
-     */
-    private StructObjectInspector rowOI;
+	/**
+	 * An ObjectInspector to be used as meta-data about a deserialized row
+	 */
+	private StructObjectInspector rowOI;
 
-    /**
-     * A row object
-     */
-    private ArrayList<Object> row;
+	/**
+	 * List of row objects
+	 */
+	private ArrayList<Object> row;
 
-    /**
-     * Initialize this SerDe with the system properties and table properties
-     * 
-     */
-    @Override
-    public void initialize(Configuration sysProps, Properties tblProps)
-	    throws SerDeException {
-	LOG.debug("Initializing JsonSerde");
+	/**
+	 * List of column type information
+	 */
+	private List<TypeInfo> columnTypes;
 
-	// Get the names of the columns for the table this SerDe is being used
-	// with
-	String columnNameProperty = tblProps
-		.getProperty(Constants.LIST_COLUMNS);
-	columnNames = Arrays.asList(columnNameProperty.split(","));
+	/**
+	 * Initialize this SerDe with the system properties and table properties
+	 * 
+	 */
+	@Override
+	public void initialize(Configuration sysProps, Properties tblProps)
+			throws SerDeException {
+		LOG.debug("Initializing JsonSerde");
 
-	// Convert column types from text to TypeInfo objects
-	String columnTypeProperty = tblProps
-		.getProperty(Constants.LIST_COLUMN_TYPES);
-	List<TypeInfo> columnTypes = TypeInfoUtils
-		.getTypeInfosFromTypeString(columnTypeProperty);
-	assert columnNames.size() == columnTypes.size();
-	numColumns = columnNames.size();
+		// Get the names of the columns for the table this SerDe is being used
+		// with
+		String columnNameProperty = tblProps
+				.getProperty(Constants.LIST_COLUMNS);
+		columnNames = Arrays.asList(columnNameProperty.split(","));
 
-	// Create ObjectInspectors from the type information for each column
-	List<ObjectInspector> columnOIs = new ArrayList<ObjectInspector>(
-		columnNames.size());
-	ObjectInspector oi;
-	for (int c = 0; c < numColumns; c++) {
-	    oi = TypeInfoUtils
-		    .getStandardJavaObjectInspectorFromTypeInfo(columnTypes
-			    .get(c));
-	    columnOIs.add(oi);
-	}
-	rowOI = ObjectInspectorFactory.getStandardStructObjectInspector(
-		columnNames, columnOIs);
+		// Convert column types from text to TypeInfo objects
+		String columnTypeProperty = tblProps
+				.getProperty(Constants.LIST_COLUMN_TYPES);
+		columnTypes = TypeInfoUtils
+				.getTypeInfosFromTypeString(columnTypeProperty);
+		assert columnNames.size() == columnTypes.size();
+		numColumns = columnNames.size();
 
-	// Create an empty row object to be reused during deserialization
-	row = new ArrayList<Object>(numColumns);
-	for (int c = 0; c < numColumns; c++) {
-	    row.add(null);
-	}
-
-	LOG.debug("JsonSerde initialization complete");
-    }
-
-    /**
-     * Gets the ObjectInspector for a row deserialized by this SerDe
-     */
-    @Override
-    public ObjectInspector getObjectInspector() throws SerDeException {
-	return rowOI;
-    }
-
-    /**
-     * Deserialize a JSON Object into a row for the table
-     */
-    @Override
-    public Object deserialize(Writable blob) throws SerDeException {
-	Text rowText = (Text) blob;
-	LOG.debug("Deserialize row: " + rowText.toString());
-
-	// Try parsing row into JSON object
-	JSONObject jObj;
-	try {
-	    jObj = new JSONObject(rowText.toString()) {
-		/**
-		 * In Hive column names are case insensitive, so lower-case all
-		 * field names
-		 * 
-		 * @see org.json.JSONObject#put(java.lang.String,
-		 *      java.lang.Object)
-		 */
-		@Override
-		public JSONObject put(String key, Object value)
-			throws JSONException {
-		    return super.put(key.toLowerCase(), value);
+		// Create ObjectInspectors from the type information for each column
+		List<ObjectInspector> columnOIs = new ArrayList<ObjectInspector>(
+				columnNames.size());
+		ObjectInspector oi;
+		for (int c = 0; c < numColumns; c++) {
+			oi = TypeInfoUtils
+					.getStandardJavaObjectInspectorFromTypeInfo(columnTypes
+							.get(c));
+			columnOIs.add(oi);
 		}
-	    };
-	} catch (JSONException e) {
-	    // If row is not a JSON object, make the whole row NULL
-	    LOG.error("Row is not a valid JSON Object - JSONException: "
-		    + e.getMessage());
-	    return null;
+		rowOI = ObjectInspectorFactory.getStandardStructObjectInspector(
+				columnNames, columnOIs);
+
+		// Create an empty row object to be reused during deserialization
+		row = new ArrayList<Object>(numColumns);
+		for (int c = 0; c < numColumns; c++) {
+			row.add(null);
+		}
+
+		LOG.debug("JsonSerde initialization complete");
 	}
 
-	// Loop over columns in table and set values
-	String colName;
-	Object value;
-	for (int c = 0; c < numColumns; c++) {
-	    colName = columnNames.get(c);
-
-	    try {
-		value = jObj.get(colName);
-	    } catch (JSONException e) {
-		// If the column cannot be found, just make it a NULL value and
-		// skip over it
-		LOG.warn("Column '" + colName + "' not found in row: "
-			+ rowText.toString() + " - JSONException: "
-			+ e.getMessage());
-		value = null;
-	    }
-	    row.set(c, value);
+	/**
+	 * Gets the ObjectInspector for a row deserialized by this SerDe
+	 */
+	@Override
+	public ObjectInspector getObjectInspector() throws SerDeException {
+		return rowOI;
 	}
 
-	return row;
-    }
+	/**
+	 * Deserialize a JSON Object into a row for the table
+	 */
+	@Override
+	public Object deserialize(Writable blob) throws SerDeException {
+		Text rowText = (Text) blob;
+		LOG.debug("Deserialize row: " + rowText.toString());
 
-    /**
-     * Not sure - something to do with serialization of data
-     */
-    @Override
-    public Class<? extends Writable> getSerializedClass() {
-	return Text.class;
-    }
+		// Try parsing row into JSON object
+		JSONObject jObj;
+		try {
+			jObj = new JSONObject(rowText.toString()) {
+				/**
+				 * In Hive column names are case insensitive, so lower-case all
+				 * field names
+				 * 
+				 * @see org.json.JSONObject#put(java.lang.String,
+				 *      java.lang.Object)
+				 */
+				@Override
+				public JSONObject put(String key, Object value)
+						throws JSONException {
+					return super.put(key.toLowerCase(), value);
+				}
+			};
+		} catch (JSONException e) {
+			// If row is not a JSON object, make the whole row NULL
+			LOG.error("Row is not a valid JSON Object - JSONException: "
+					+ e.getMessage());
+			return null;
+		}
 
-    /**
-     * Serializes a row of data into a JSON object
-     * 
-     * @todo Implement this - sorry!
-     */
-    @Override
-    public Writable serialize(Object obj, ObjectInspector objInspector)
-	    throws SerDeException {
-	LOG.info("-----------------------------");
-	LOG.info("--------- serialize ---------");
-	LOG.info("-----------------------------");
-	LOG.info(obj.toString());
-	LOG.info(objInspector.toString());
+		// Loop over columns in table and set values
+		String colName;
+		Object value;
+		for (int c = 0; c < numColumns; c++) {
+			colName = columnNames.get(c);
+			TypeInfo ti = columnTypes.get(c);
 
-	return null;
-    }
+			try {
+				// Get type-safe JSON values
+				if (ti.getTypeName().equalsIgnoreCase(
+						Constants.DOUBLE_TYPE_NAME)) {
+					value = jObj.getDouble(colName);
+				} else if (ti.getTypeName().equalsIgnoreCase(
+						Constants.BIGINT_TYPE_NAME)) {
+					value = jObj.getLong(colName);
+				} else if (ti.getTypeName().equalsIgnoreCase(
+						Constants.INT_TYPE_NAME)) {
+					value = jObj.getInt(colName);
+				} else if (ti.getTypeName().equalsIgnoreCase(
+						Constants.TINYINT_TYPE_NAME)) {
+					value = Byte.valueOf(jObj.getString(colName));
+				} else if (ti.getTypeName().equalsIgnoreCase(
+						Constants.FLOAT_TYPE_NAME)) {
+					value = Float.valueOf(jObj.getString(colName));
+				} else if (ti.getTypeName().equalsIgnoreCase(
+						Constants.BOOLEAN_TYPE_NAME)) {
+					value = jObj.getBoolean(colName);
+				} else {
+					// Fall back, just get an object
+					value = jObj.get(colName);
+				}
+			} catch (JSONException e) {
+				// If the column cannot be found, just make it a NULL value and
+				// skip over it
+				LOG.warn("Column '" + colName + "' not found in row: "
+						+ rowText.toString() + " - JSONException: "
+						+ e.getMessage());
+				value = null;
+			}
+			row.set(c, value);
+		}
+
+		return row;
+	}
+
+	/**
+	 * Not sure - something to do with serialization of data
+	 */
+	@Override
+	public Class<? extends Writable> getSerializedClass() {
+		return Text.class;
+	}
+
+	/**
+	 * Serializes a row of data into a JSON object
+	 * 
+	 * @todo Implement this - sorry!
+	 */
+	@Override
+	public Writable serialize(Object obj, ObjectInspector objInspector)
+			throws SerDeException {
+		LOG.info("-----------------------------");
+		LOG.info("--------- serialize ---------");
+		LOG.info("-----------------------------");
+		LOG.info(obj.toString());
+		LOG.info(objInspector.toString());
+
+		return null;
+	}
 }
