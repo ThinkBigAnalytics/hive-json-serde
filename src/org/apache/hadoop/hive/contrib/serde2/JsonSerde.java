@@ -230,9 +230,11 @@ public class JsonSerde implements SerDe {
 			} catch (JSONException e) {
 				// If the column cannot be found, just make it a NULL value and
 				// skip over it
-				LOG.warn("Column '" + colName + "' not found in row: "
+				if (LOG.isDebugEnabled()) {
+					LOG.debug("Column '" + colName + "' not found in row: "
 						+ rowText.toString() + " - JSONException: "
 						+ e.getMessage());
+				}
 				value = null;
 			}
 			row.set(c, value);
