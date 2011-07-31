@@ -66,7 +66,6 @@ import org.json.JSONObject;
  * SELECT * FROM my_table LIMIT 10;
  * </pre>
  * 
- * 
  * </li>
  * </ol>
  * <p>
@@ -74,7 +73,6 @@ import org.json.JSONObject;
  * vice-versa. If the table has a column that does not exist in the JSON object,
  * it will have a NULL value. If the JSON file contains fields that are not
  * columns in the table, they will be ignored and not visible to the table.
- * 
  * 
  * @see <a href="http://code.google.com/p/hive-json-serde/">hive-json-serde on
  *      Google Code</a>
@@ -113,7 +111,6 @@ public class JsonSerde implements SerDe {
 
 	/**
 	 * Initialize this SerDe with the system properties and table properties
-	 * 
 	 */
 	@Override
 	public void initialize(Configuration sysProps, Properties tblProps)
@@ -205,7 +202,9 @@ public class JsonSerde implements SerDe {
 
 			try {
 				// Get type-safe JSON values
-				if (ti.getTypeName().equalsIgnoreCase(
+				if (jObj.isNull(colName)) {
+					value = null;
+				} else if (ti.getTypeName().equalsIgnoreCase(
 						Constants.DOUBLE_TYPE_NAME)) {
 					value = jObj.getDouble(colName);
 				} else if (ti.getTypeName().equalsIgnoreCase(
@@ -232,8 +231,8 @@ public class JsonSerde implements SerDe {
 				// skip over it
 				if (LOG.isDebugEnabled()) {
 					LOG.debug("Column '" + colName + "' not found in row: "
-						+ rowText.toString() + " - JSONException: "
-						+ e.getMessage());
+							+ rowText.toString() + " - JSONException: "
+							+ e.getMessage());
 				}
 				value = null;
 			}
