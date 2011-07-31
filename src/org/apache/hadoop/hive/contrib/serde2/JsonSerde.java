@@ -21,6 +21,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -223,11 +224,18 @@ public class JsonSerde implements SerDe {
 						Constants.BOOLEAN_TYPE_NAME)) {
 					value = jObj.getBoolean(colName);
 				} else if (ti.getTypeName().equalsIgnoreCase(
-						Constants.STRING_TYPE_NAME)
-						&& jObj.get(colName) instanceof java.lang.Number) {
-					// Convert JSON numbers to strings to match the type of the
-					// column definition
+						Constants.STRING_TYPE_NAME)) {
 					value = jObj.getString(colName);
+				} else if (ti.getTypeName()
+						.startsWith(Constants.LIST_TYPE_NAME)) {
+					// Copy to an Object array
+					JSONArray jArray = jObj.getJSONArray(colName);
+					Object[] newarr = new Object[jArray.length()];
+					for (int i = 0; i < newarr.length; i++) {
+						newarr[i] = jArray.get(i);
+					}
+					value = newarr;
+
 				} else {
 					// Fall back, just get an object
 					value = jObj.get(colName);
