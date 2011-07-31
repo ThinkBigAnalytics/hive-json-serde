@@ -222,6 +222,12 @@ public class JsonSerde implements SerDe {
 				} else if (ti.getTypeName().equalsIgnoreCase(
 						Constants.BOOLEAN_TYPE_NAME)) {
 					value = jObj.getBoolean(colName);
+				} else if (ti.getTypeName().equalsIgnoreCase(
+						Constants.STRING_TYPE_NAME)
+						&& jObj.get(colName) instanceof java.lang.Number) {
+					// Convert JSON numbers to strings to match the type of the
+					// column definition
+					value = jObj.getString(colName);
 				} else {
 					// Fall back, just get an object
 					value = jObj.get(colName);
