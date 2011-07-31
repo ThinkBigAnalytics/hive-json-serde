@@ -6,6 +6,9 @@ Peter Sankauskas
 -->
 
 <project name="hive-json-serde" default="usage" basedir=".">
+	<!-- Change this version number when you do a release -->
+	<property name="version" value="0.3" />
+	
 	<!-- Local system paths -->
 	<property name="dir.src" value="${basedir}/src" />
 	<property name="dir.build" value="${basedir}/build" />
@@ -15,6 +18,7 @@ Peter Sankauskas
 	<property name="dir.test.report" value="${basedir}/test-reports" />
 	<property name="dir.javadoc" value="${basedir}/../javadoc" />
 	<property name="jarfile" value="${dir.build}/hive-json-serde.jar" />
+	<property name="jarfileversioned" value="${dir.build}/hive-json-serde-${version}.jar" />
 
 	<!-- Classpath -->
 	<path id="compile.classpath">
@@ -71,6 +75,7 @@ Peter Sankauskas
 		<jar destfile="${jarfile}">
 			<fileset dir="${dir.build.classes}" excludes="${dir.build.tests}/**" />
 		</jar>
+		<copyfile dest="${jarfileversioned}" src="${jarfile}" />
 	</target>
 
 	<target name="build.debug">
