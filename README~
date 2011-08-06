@@ -10,5 +10,3 @@ Branched from the version of the Google Code project as of July 5.  Changes to t
    WITH SERDEPROPERTIES (
       "request_id"="$.search_result.requestId"
    );
-
-3. Better handling of nested JSON structures via JSON Path.  The code still does not make any attempt to handle arrays or maps and explicitly forbids any JSON Path expressions which are not "definite."

@@ -1,0 +1,6 @@
+<ivy-module version="2.0">
+  <info organisation="org.apache.hadoop.hive.contrib.serde2" module="hive-json-serder"/>
+  <dependencies>
+    <dependency org="com.jayway.jsonpath" name="json-path" rev="latest.integration" />
+  </dependencies>
+</ivy-module>
