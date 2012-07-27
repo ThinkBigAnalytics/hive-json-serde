@@ -74,6 +74,7 @@ Peter Sankauskas
 	<target name="build" depends="compile">
 		<jar destfile="${jarfile}">
 			<fileset dir="${dir.build.classes}" excludes="${dir.build.tests}/**" />
+			<zipgroupfileset dir="${dir.lib}" includes="**/*.jar" />
 		</jar>
 		<copyfile dest="${jarfileversioned}" src="${jarfile}" />
 	</target>
