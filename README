@@ -1,3 +1,7 @@
+# hive-json-serde README
+
+*Copyright (C) 2010-2014 Think Big Analytics, Inc. All Rights Reserved.*
+
 Branched from the version of the Google Code project as of July 5.  Changes to the Google Code Project after July 5, 2011 are not reflected here.  The main goals of this branch were as follows:
 
 1. Incorporate JSON Path as a standardized way of accessing JSON values.

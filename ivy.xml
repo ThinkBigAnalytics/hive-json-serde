@@ -1,3 +1,5 @@
+<!-- Copyright (C) 2010-2014 Think Big Analytics, Inc. All Rights Reserved. -->
+
 <ivy-module version="2.0">
   <info organisation="org.apache.hadoop.hive.contrib.serde2" module="hive-json-serder"/>
   <dependencies>
